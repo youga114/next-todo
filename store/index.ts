@@ -1,17 +1,22 @@
-import { createStore, applyMiddleware, combineReducers } from "redux";
 import { createWrapper, HYDRATE } from "next-redux-wrapper";
+import { configureStore, combineReducers, AnyAction } from "@reduxjs/toolkit";
 import todo from "./todo";
+import {
+    TypedUseSelectorHook,
+    useSelector as useReduxSelector,
+} from "react-redux";
 
 const rootReducer = combineReducers({
-    todo,
+    todo: todo.reducer,
 });
 
-const reducer = (state, action) => {
+const reducer = (state: any, action: AnyAction) => {
     if (action.type === HYDRATE) {
         const nextState = {
             ...state,
             ...action.payload,
         };
+        if (state.count) nextState.count = state.count;
         return nextState;
     }
     return rootReducer(state, action);
@@ -19,16 +24,16 @@ const reducer = (state, action) => {
 
 export type RootState = ReturnType<typeof rootReducer>;
 
-const bindMiddleware = (middleware: any) => {
-    if (process.env.NODE_ENV !== "production") {
-        const { composeWithDevTools } = require("redux-devtools-extension");
-        return composeWithDevTools(applyMiddleware(...middleware));
-    }
-    return applyMiddleware(...middleware);
-};
-
 const initStore = () => {
-    return createStore(reducer, bindMiddleware([]));
+    return configureStore({
+        reducer,
+        devTools: true,
+    });
 };
 
 export const wrapper = createWrapper(initStore);
+export const useSelector: TypedUseSelectorHook<RootState> = useReduxSelector;
+
+declare module "react-redux" {
+    interface DefaultRootState extends RootState {}
+}
